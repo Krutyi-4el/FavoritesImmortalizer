@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -12,7 +13,7 @@ import kotlin.io.path.isExecutable
 import kotlin.io.path.notExists
 
 class ImmortalizerService : Service() {
-    private val pipeFile = Path(applicationContext.filesDir.path, "pipe")
+    private lateinit var pipeFile: Path
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY
@@ -25,6 +26,7 @@ class ImmortalizerService : Service() {
     override fun onCreate() {
         super.onCreate()
 
+        pipeFile = Path(applicationContext.filesDir.path, "pipe")
         thread { setResult(checkAndRun()) }
     }
 
