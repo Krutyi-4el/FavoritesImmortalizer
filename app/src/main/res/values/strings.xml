@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Favorites Immortalizer</string>
+    <string name="main_button_start">Start</string>
+    <string name="main_button_stop">Stop</string>
+    <string name="no_path">PATH variable not set</string>
+    <string name="no_programs">Couldn\'t find necessary programs:</string>
+    <string name="mkfifo_failed">Failed to create pipe with mkfifo</string>
+    <string name="no_root">Failed to get root access</string>
+    <string name="success">Service started successfully</string>
 </resources>
