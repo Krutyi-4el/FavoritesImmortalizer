@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import org.json.JSONArray
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -17,9 +18,15 @@ import kotlin.io.path.notExists
 import kotlin.io.path.writeText
 
 class ImmortalizerService : Service() {
-    private val favorites = Uri.parse("content://settings/system/recent_panel_favorites")
+    private lateinit var favorites: Uri
+    private lateinit var favoritesString: String
+    private lateinit var parseStrategy: (String) -> List<String>
     private lateinit var pipeFile: Path
-    private var favoritesString: String? = null
+
+    private val strategies = hashMapOf(
+        "content://settings/system/recent_panel_favorites" to ::parseStrategySlim,
+        "content://settings/system/locked_apps" to ::parseStrategyJson,
+    )
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY
@@ -65,6 +72,11 @@ class ImmortalizerService : Service() {
             }
         }
 
+        val uri = strategies.keys.find {
+            readFavorites(Uri.parse(it)) != null
+        } ?: return getString(R.string.favorites_not_supported)
+        favorites = Uri.parse(uri)
+        parseStrategy = strategies[uri]!!
         thread {
             Looper.prepare()
             contentResolver.registerContentObserver(
@@ -84,15 +96,13 @@ class ImmortalizerService : Service() {
     private fun mainLoop() {
         while (isRunning) {
             Thread.sleep(1000)
-            favoritesString?.let {
-                pipeFile.writeText("for name in $it; do for pid in \$(pidof \$name); do echo '-1000' > /proc/\$pid/oom_score_adj; done; done")
-            }
+            pipeFile.writeText("for name in $favoritesString; do for pid in \$(pidof \$name); do echo '-1000' > /proc/\$pid/oom_score_adj; done; done")
         }
     }
 
-    private fun readFavorites(): String? {
+    private fun readFavorites(uri: Uri = favorites): String? {
         val cursor = contentResolver.query(
-            favorites,
+            uri,
             arrayOf("value"),
             null,
             null,
@@ -108,8 +118,25 @@ class ImmortalizerService : Service() {
 
     fun updateFavorites() {
         val favorites = readFavorites() ?: return
-        favoritesString = favorites.split("|").map { it.substringAfter(":").substringBefore("/") }
-            .plus(packageName).joinToString(" ")
+        favoritesString = parseStrategy(favorites).plus(packageName).toHashSet().joinToString(" ")
+    }
+
+    private fun parseStrategySlim(data: String): List<String> {
+        return data.split("|").map { it.substringAfter(":").substringBefore("/") }
+    }
+
+    private fun parseStrategyJson(data: String): List<String> {
+        val arr = JSONArray(data)
+        for (i in 0 until arr.length()) {
+            val obj = arr.getJSONObject(i)
+            if (obj.getInt("u") == 0) {
+                val jsonList = obj.getJSONArray("pkgs")
+                val list = ArrayList<String>()
+                for (j in 0 until jsonList.length()) list.add(jsonList.getString(j))
+                return list
+            }
+        }
+        return listOf()
     }
 
     companion object {

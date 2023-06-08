@@ -7,4 +7,5 @@
     <string name="mkfifo_failed">Failed to create pipe with mkfifo</string>
     <string name="no_root">Failed to get root access</string>
     <string name="success">Service started successfully</string>
+    <string name="favorites_not_supported">Your configuration is not supported</string>
 </resources>
