@@ -2,8 +2,11 @@ package ua.k4.immortalizer
 
 import android.app.Service
 import android.content.Intent
+import android.database.ContentObserver
+import android.net.Uri
+import android.os.Handler
 import android.os.IBinder
-import android.util.Log
+import android.os.Looper
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -11,9 +14,12 @@ import kotlin.concurrent.thread
 import kotlin.io.path.Path
 import kotlin.io.path.isExecutable
 import kotlin.io.path.notExists
+import kotlin.io.path.writeText
 
 class ImmortalizerService : Service() {
+    private val favorites = Uri.parse("content://settings/system/recent_panel_favorites")
     private lateinit var pipeFile: Path
+    private var favoritesString: String? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY
@@ -59,6 +65,17 @@ class ImmortalizerService : Service() {
             }
         }
 
+        thread {
+            Looper.prepare()
+            contentResolver.registerContentObserver(
+                favorites, true, FavoritesObserver(
+                    this, Handler(Looper.myLooper()!!)
+                )
+            )
+            Looper.loop()
+        }
+        updateFavorites()
+
         isRunning = true
         thread { mainLoop() }
         return null
@@ -67,8 +84,32 @@ class ImmortalizerService : Service() {
     private fun mainLoop() {
         while (isRunning) {
             Thread.sleep(1000)
-            Log.d("ImmortalizerService", "loop")
+            favoritesString?.let {
+                pipeFile.writeText("for name in $it; do for pid in \$(pidof \$name); do echo '-1000' > /proc/\$pid/oom_score_adj; done; done")
+            }
         }
+    }
+
+    private fun readFavorites(): String? {
+        val cursor = contentResolver.query(
+            favorites,
+            arrayOf("value"),
+            null,
+            null,
+            null,
+        ) ?: return null
+        if (!cursor.moveToFirst()) {
+            cursor.close()
+            return null
+        }
+
+        return cursor.getString(0)
+    }
+
+    fun updateFavorites() {
+        val favorites = readFavorites() ?: return
+        favoritesString = favorites.split("|").map { it.substringAfter(":").substringBefore("/") }
+            .plus(packageName).joinToString(" ")
     }
 
     companion object {
@@ -84,5 +125,16 @@ class ImmortalizerService : Service() {
         private fun setResult(value: String?) {
             result.complete(value)
         }
+    }
+}
+
+class FavoritesObserver(private val service: ImmortalizerService, h: Handler) : ContentObserver(h) {
+    override fun deliverSelfNotifications(): Boolean {
+        return false
+    }
+
+    override fun onChange(selfChange: Boolean) {
+        super.onChange(selfChange)
+        service.updateFavorites()
     }
 }
