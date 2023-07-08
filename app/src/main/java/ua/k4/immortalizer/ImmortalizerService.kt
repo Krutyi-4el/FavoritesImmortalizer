@@ -72,8 +72,15 @@ class ImmortalizerService : Service() {
             }
         }
 
-        // disable battery optimization for this app
-        pipeFile.writeText("dumpsys deviceidle whitelist +$packageName")
+        // disable or enable battery optimization for this app
+        val action = if (Settings(
+                Path(
+                    applicationContext.filesDir.path,
+                    "settings.json"
+                )
+            ).disableBatteryOptimization
+        ) "+" else "-"
+        pipeFile.writeText("dumpsys deviceidle whitelist $action$packageName")
 
         val uri = strategies.keys.find {
             readFavorites(Uri.parse(it)) != null
