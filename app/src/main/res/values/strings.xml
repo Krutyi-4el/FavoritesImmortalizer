@@ -10,4 +10,6 @@
     <string name="no_root">Failed to get root access</string>
     <string name="success">Service started successfully</string>
     <string name="favorites_not_supported">Your configuration is not supported</string>
+    <string name="optimization_switch">Disable battery optimization for this app</string>
+    <string name="boot_switch">Start service on boot</string>
 </resources>
