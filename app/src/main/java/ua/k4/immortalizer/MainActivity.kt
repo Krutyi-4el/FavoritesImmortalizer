@@ -12,19 +12,25 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // notify that it should continue running
-        if (ImmortalizerService.isRunning) startImmortalizer()
-
         val button = findViewById<Button>(R.id.main_button)
-        button.text =
-            getString(if (ImmortalizerService.isRunning) R.string.main_button_stop else R.string.main_button_start)
+        val textView = findViewById<TextView>(R.id.main_text)
+
+        if (ImmortalizerService.isRunning) {
+            // notify that it should continue running
+            startImmortalizer()
+            button.text = getString(R.string.main_button_stop)
+            textView.text = getString(R.string.service_running)
+        } else {
+            button.text = getString(R.string.main_button_start)
+            textView.text = getString(R.string.service_stopped)
+        }
+
         button.setOnClickListener {
             if (!ImmortalizerService.isRunning) {
                 startImmortalizer()
                 thread {
                     val result = ImmortalizerService.getResult()
                     runOnUiThread {
-                        val textView = findViewById<TextView>(R.id.main_text)
                         if (result != null) {
                             stopImmortalizer()
                             textView.text = result
@@ -37,6 +43,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 stopImmortalizer()
                 button.text = getString(R.string.main_button_start)
+                textView.text = getString(R.string.service_stopped)
             }
         }
     }

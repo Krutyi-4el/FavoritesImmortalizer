@@ -2,6 +2,8 @@
     <string name="app_name">Favorites Immortalizer</string>
     <string name="main_button_start">Start</string>
     <string name="main_button_stop">Stop</string>
+    <string name="service_running">Service is running</string>
+    <string name="service_stopped">Service is stopped</string>
     <string name="no_path">PATH variable not set</string>
     <string name="no_programs">Couldn\'t find necessary programs:</string>
     <string name="mkfifo_failed">Failed to create pipe with mkfifo</string>
