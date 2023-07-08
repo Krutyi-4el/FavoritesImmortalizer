@@ -72,6 +72,9 @@ class ImmortalizerService : Service() {
             }
         }
 
+        // disable battery optimization for this app
+        pipeFile.writeText("dumpsys deviceidle whitelist +$packageName")
+
         val uri = strategies.keys.find {
             readFavorites(Uri.parse(it)) != null
         } ?: return getString(R.string.favorites_not_supported)
