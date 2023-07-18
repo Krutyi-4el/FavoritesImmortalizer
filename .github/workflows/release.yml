@@ -25,7 +25,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Build app
-        run: gradle --no-daemon wrapper --gradle-version 8.0 && ./gradlew --no-daemon assembleRelease
+        run: gradle --no-daemon wrapper && ./gradlew --no-daemon assembleRelease
 
       - name: Upload binary to release
         uses: svenstaro/upload-release-action@v2
